@@ -1,0 +1,783 @@
+<style>
+  #bna-cal{font-family:Georgia,serif;max-width:45rem;margin:0 auto;padding:0.5rem 0}
+  #bna-cal .cal-loading{text-align:center;padding:2rem;color:#555;font-style:italic}
+  #bna-cal .cal-error{background:#fff3f3;border:0.0625rem solid #f8b4b4;border-radius:0.375rem;padding:1rem;color:#a00;font-size:.9rem}
+  #bna-cal .no-events{color:#777;font-style:italic;padding:1rem 0}
+
+  /* ── toolbar ── */
+  #bna-cal .cal-toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.875rem}
+  #bna-cal .toolbar-left{display:flex;align-items:center;gap:0.625rem}
+  #bna-cal .nav-label{font-size:.95rem;font-weight:700;color:#1a3a5c;white-space:nowrap}
+
+  /* ── base reset ── */
+  #bna-cal button{all:unset;box-sizing:border-box;cursor:pointer}
+
+  /* dropdown */
+  #bna-cal .view-dropdown{position:relative;display:inline-block}
+  #bna-cal .view-dropdown-btn{font-family:Georgia,serif !important;font-size:.78rem !important;padding:0.375rem 1rem 0.375rem 1.125rem !important;border-radius:999px !important;border:0.09375rem solid #1a3a5c !important;background:transparent !important;color:#1a3a5c !important;cursor:pointer !important;display:inline-flex !important;align-items:center;gap:0.375rem;transition:background .15s;line-height:1.4}
+  #bna-cal .view-dropdown-btn:hover{background:#dbeafe !important}
+  #bna-cal .view-dropdown-btn::after{content:'▾';font-size:.65rem;opacity:.7}
+  #bna-cal .view-dropdown-menu{display:none;position:absolute;right:0;top:calc(100% + 0.375rem);background:#fff !important;border:0.09375rem solid #d0d8e4 !important;border-radius:0.75rem !important;box-shadow:0 0.25rem 1rem rgba(0,0,0,.1);overflow:hidden;z-index:9997;min-width:8.125rem}
+  #bna-cal .view-dropdown-menu.open{display:block}
+  #bna-cal .view-dropdown-menu button{display:block !important;width:100% !important;text-align:left !important;font-family:Georgia,serif !important;font-size:.82rem !important;padding:0.5625rem 1.125rem !important;border:none !important;border-radius:0 !important;background:transparent !important;color:#1a3a5c !important;cursor:pointer !important;transition:background .12s;line-height:1.4}
+  #bna-cal .view-dropdown-menu button:hover{background:#dbeafe !important}
+  #bna-cal .view-dropdown-menu button.active{font-weight:700 !important;background:#f0f6ff !important}
+  #bna-cal .view-dropdown-menu button+button{border-top:0.0625rem solid #f0f0f0 !important}
+
+  /* nav arrows */
+  #bna-cal .cal-nav-btn{font-family:Georgia,serif !important;font-size:1rem !important;width:2.125rem !important;height:2.125rem !important;border-radius:999px !important;border:0.09375rem solid #d0d8e4 !important;background:transparent !important;color:#1a3a5c !important;cursor:pointer !important;display:inline-flex !important;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;line-height:1}
+  #bna-cal .cal-nav-btn:hover{background:#dbeafe !important;border-color:#93c5fd !important}
+  #bna-cal .cal-nav-btn.nav-hidden{visibility:hidden !important;pointer-events:none !important}
+  #bna-cal .cal-nav-today{font-family:Georgia,serif !important;font-size:.75rem !important;padding:0.25rem 0.75rem !important;border-radius:999px !important;border:0.09375rem solid #d0d8e4 !important;background:transparent !important;color:#1a3a5c !important;cursor:pointer !important;transition:background .15s,border-color .15s;line-height:1.4;white-space:nowrap}
+  #bna-cal .cal-nav-today:hover{background:#dbeafe !important;border-color:#93c5fd !important}
+
+  /* ── filter bar ── */
+  #bna-cal .filter-bar{padding:0.625rem 0 0.75rem;border-bottom:0.0625rem solid #efefef;margin-bottom:0.25rem;display:flex;flex-direction:column;gap:0.5rem}
+  #bna-cal .filter-search{width:100%;box-sizing:border-box;font-family:Georgia,serif;font-size:.85rem;padding:0.4375rem 0.875rem;border:0.09375rem solid #d0d8e4;border-radius:999px;outline:none;color:#1a1a1a;background:#fff}
+  #bna-cal .filter-search:focus{border-color:#93c5fd}
+  #bna-cal .filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:0.375rem}
+  #bna-cal .filter-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-right:0.125rem;white-space:nowrap}
+  #bna-cal .filter-chip{font-size:.72rem !important;padding:0.1875rem 0.625rem !important;border-radius:999px !important;border:0.09375rem solid #d0d8e4 !important;background:transparent !important;color:#666 !important;cursor:pointer !important;font-family:Georgia,serif !important;transition:background .12s,border-color .12s,color .12s;line-height:1.5}
+  #bna-cal .filter-chip:hover{background:#f0f6ff !important;border-color:#93c5fd !important}
+  #bna-cal .filter-chip.on{border-color:#1a3a5c !important;background:#1a3a5c !important;color:#fff !important}
+  #bna-cal .filter-chip.src-main.on{border-color:#ad1457 !important;background:#ad1457 !important;color:#fff !important}
+  #bna-cal .filter-chip.src-second.on{border-color:#3f51b5 !important;background:#3f51b5 !important;color:#fff !important}
+  #bna-cal .filter-select{font-family:Georgia,serif !important;font-size:.75rem;padding:0.25rem 0.5rem;border:0.09375rem solid #d0d8e4;border-radius:999px;color:#666;background:#fff;cursor:pointer;outline:none}
+  #bna-cal .filter-select:focus{border-color:#93c5fd}
+  #bna-cal .filter-clear{font-size:.72rem !important;color:#aaa !important;cursor:pointer !important;background:transparent !important;border:none !important;padding:0.125rem 0.25rem !important;text-decoration:underline;font-family:Georgia,serif !important;border-radius:0 !important;display:none !important}
+  #bna-cal .filter-clear.visible{display:inline !important}
+  #bna-cal .filter-clear:hover{color:#555 !important}
+
+  /* ── agenda scroll ── */
+  #bna-cal .cal-scroll{height:32.5rem;overflow-y:auto;border:0.0625rem solid #e8e8e8;border-radius:0.5rem;padding:0 1rem}
+  #bna-cal .cal-scroll::-webkit-scrollbar{width:0.3125rem}
+  #bna-cal .cal-scroll::-webkit-scrollbar-track{background:#f5f5f5;border-radius:0.5rem}
+  #bna-cal .cal-scroll::-webkit-scrollbar-thumb{background:#ccc;border-radius:0.5rem}
+  #bna-cal .month-group{margin:0 0 1.5rem}
+  #bna-cal .month-group:first-child{margin-top:0.75rem}
+  #bna-cal .month-label{font-size:.75rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#888;border-bottom:0.125rem solid #e0e0e0;padding-bottom:0.375rem;margin:0 0 1rem;position:sticky;top:0;background:#fff;padding-top:0.5rem;z-index:1}
+  #bna-cal .event-row{display:flex;gap:1rem;padding:0.625rem 0;border-bottom:0.0625rem solid #f0f0f0;align-items:flex-start}
+  #bna-cal .event-row:last-child{border-bottom:none}
+  #bna-cal .event-date{flex:0 0 3.25rem;text-align:center;background:#f5f5f5;border-radius:0.375rem;padding:0.375rem 0.25rem;line-height:1.2}
+  #bna-cal .event-date .eday{font-size:1.4rem;font-weight:700;color:#1a1a1a;line-height:1}
+  #bna-cal .event-date .edow{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:#777}
+  #bna-cal .event-body{flex:1;min-width:0}
+  #bna-cal .event-time{font-size:.8rem;color:#555;margin:0 0 0.25rem}
+  #bna-cal .event-location{font-size:.8rem;color:#666;margin:0 0 0.375rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #bna-cal .event-desc{font-size:.82rem;color:#444;margin:0 0 0.375rem;line-height:1.5}
+  #bna-cal .event-actions{display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.25rem}
+  #bna-cal .btn-cal{display:inline-flex !important;align-items:center;gap:0.3125rem;font-size:.75rem !important;padding:0.25rem 0.625rem !important;border-radius:999px !important;text-decoration:none !important;font-family:inherit !important;border:0.09375rem solid !important;cursor:pointer !important;background:transparent !important;transition:background .15s;line-height:1.4}
+  #bna-cal .btn-gcal{border-color:#1a73e8 !important;color:#1a73e8 !important}
+  #bna-cal .btn-gcal:hover{background:#dbeafe !important}
+  #bna-cal .btn-ical{border-color:#555 !important;color:#555 !important}
+  #bna-cal .btn-ical:hover{background:#dbeafe !important;border-color:#93c5fd !important;color:#1a3a5c !important}
+  #bna-cal .btn-more{border:none !important;color:#1a73e8 !important;font-size:.75rem !important;padding:0.125rem 0 !important;cursor:pointer !important;background:transparent !important;font-family:inherit !important;border-radius:0 !important}
+  #bna-cal .btn-more:hover{text-decoration:underline}
+  #bna-cal .cal-source-tag{display:inline-block;font-size:.65rem;padding:0.0625rem 0.4375rem;border-radius:0.625rem;vertical-align:middle;margin-left:0.375rem;font-weight:600;letter-spacing:.04em}
+  #bna-cal .src-main{background:#fce8ee;color:#ad1457}
+  #bna-cal .src-second{background:#e8eaf6;color:#3f51b5}
+  #bna-cal .load-more-wrap{text-align:center;padding:0.875rem 0 0.25rem}
+  #bna-cal .btn-load-more{background:transparent !important;border:0.09375rem solid #1a3a5c !important;color:#1a3a5c !important;padding:0.4375rem 1.5rem !important;border-radius:999px !important;font-family:Georgia,serif !important;font-size:.85rem !important;cursor:pointer !important;transition:background .15s;line-height:1.4}
+  #bna-cal .btn-load-more:hover{background:#dbeafe !important}
+
+  /* ── clickable event title ── */
+  #bna-cal .event-title-btn{font-size:1rem !important;font-weight:700 !important;color:#1a3a5c !important;margin:0 0 0.1875rem !important;line-height:1.35 !important;background:transparent !important;border:none !important;padding:0 !important;border-radius:0 !important;text-align:left !important;cursor:pointer !important;font-family:Georgia,serif !important;display:block !important;width:100% !important}
+  #bna-cal .event-title-btn:hover{color:#2a5080 !important;text-decoration:underline}
+
+  /* ── desc links ── */
+  #bna-cal .bna-desc-link{color:#1a73e8 !important;text-decoration:underline !important;word-break:break-all}
+  #bna-cal .bna-desc-link:hover{color:#1558b0 !important}
+
+  /* ── month grid ── */
+  #bna-cal .cal-grid{border:0.0625rem solid #e8e8e8;border-radius:0.5rem;overflow:hidden}
+  #bna-cal .grid-head{display:grid;grid-template-columns:repeat(7,1fr);background:#f5f5f5;border-bottom:0.125rem solid #e0e0e0}
+  #bna-cal .grid-head-cell{text-align:center;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888;padding:0.375rem 0.125rem}
+  #bna-cal .grid-body{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:5.5rem}
+  #bna-cal .grid-cell{overflow:hidden;border-right:0.0625rem solid #f0f0f0;border-bottom:0.0625rem solid #f0f0f0;padding:0.25rem;vertical-align:top;position:relative}
+  #bna-cal .grid-cell:nth-child(7n){border-right:none}
+  #bna-cal .grid-cell.other-month .cell-day{color:#ccc}
+  #bna-cal .grid-cell.today{background:#f0f6ff}
+  #bna-cal .grid-cell.today .cell-day{background:#1a3a5c;color:#fff;border-radius:50%;width:1.375rem;height:1.375rem;display:flex;align-items:center;justify-content:center;font-weight:700}
+  #bna-cal .cell-day{font-size:.8rem;color:#555;margin-bottom:0.1875rem;width:1.375rem;height:1.375rem;display:flex;align-items:center;justify-content:center}
+  #bna-cal .cell-event{font-size:.68rem;line-height:1.25;padding:0.125rem 0.3125rem;border-radius:0.1875rem;margin-bottom:0.125rem;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+  #bna-cal .cell-event.src-main{background:#ad1457}
+  #bna-cal .cell-event.src-second{background:#3f51b5}
+  #bna-cal .cell-more{font-size:.65rem;color:#888;cursor:pointer;padding:0.0625rem 0.25rem}
+  #bna-cal .cell-more:hover{text-decoration:underline}
+
+  /* ── week grid ── */
+  #bna-cal .week-grid{display:grid;grid-template-columns:2.75rem repeat(7,1fr);border:0.0625rem solid #e8e8e8;border-radius:0.5rem;overflow:hidden;max-height:32.5rem;overflow-y:auto}
+  #bna-cal .week-grid::-webkit-scrollbar{width:0.3125rem}
+  #bna-cal .week-grid::-webkit-scrollbar-thumb{background:#ccc;border-radius:0.5rem}
+  #bna-cal .wk-corner{background:#f5f5f5;border-bottom:0.125rem solid #e0e0e0;border-right:0.0625rem solid #e0e0e0;padding:0.375rem 0.125rem}
+  #bna-cal .wk-head{background:#f5f5f5;border-bottom:0.125rem solid #e0e0e0;border-right:0.0625rem solid #f0f0f0;text-align:center;padding:0.375rem 0.125rem}
+  #bna-cal .wk-head .wk-dow{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#888}
+  #bna-cal .wk-head .wk-date{font-size:1.1rem;font-weight:700;color:#1a3a5c;line-height:1}
+  #bna-cal .wk-head.today .wk-date{background:#1a3a5c;color:#fff;border-radius:50%;width:1.75rem;height:1.75rem;display:flex;align-items:center;justify-content:center;margin:0.125rem auto 0}
+  #bna-cal .wk-time-label{font-size:.65rem;color:#aaa;text-align:right;padding:0 0.25rem;border-right:0.0625rem solid #e0e0e0;height:2.25rem;line-height:2.25rem;border-bottom:0.0625rem solid #f8f8f8}
+  #bna-cal .wk-cell{border-right:0.0625rem solid #f0f0f0;border-bottom:0.0625rem solid #f8f8f8;height:2.25rem;position:relative;padding:0.0625rem 0.125rem}
+  #bna-cal .wk-cell.hour-start{border-bottom:0.0625rem solid #ebebeb}
+  #bna-cal .wk-event{position:absolute;left:0.0625rem;right:0.0625rem;font-size:.62rem;padding:0.0625rem 0.1875rem;border-radius:0.1875rem;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;z-index:2}
+  #bna-cal .wk-event.src-main{background:#ad1457}
+  #bna-cal .wk-event.src-second{background:#3f51b5}
+  #bna-cal .wk-allday-row{display:grid;grid-template-columns:2.75rem repeat(7,1fr);background:#fafafa;border-bottom:0.0625rem solid #e0e0e0}
+  #bna-cal .wk-allday-label{font-size:.6rem;color:#aaa;text-align:right;padding:0.1875rem 0.25rem;border-right:0.0625rem solid #e0e0e0}
+  #bna-cal .wk-allday-cell{border-right:0.0625rem solid #f0f0f0;padding:0.125rem;min-height:1.25rem}
+
+  /* ── popup ── */
+  #bna-cal .ev-popup-overlay{position:fixed !important;inset:0 !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;width:100% !important;height:100% !important;background:rgba(0,0,0,.45) !important;z-index:99999 !important;display:flex !important;align-items:center !important;justify-content:center !important;padding:1rem !important;margin:0 !important}
+  #bna-cal .ev-popup{background:#fff !important;border-radius:0.625rem !important;padding:1.25rem 1.375rem !important;max-width:25rem !important;width:100% !important;max-height:85vh !important;overflow-y:auto !important;box-shadow:0 0.5rem 2rem rgba(0,0,0,.25);position:relative;z-index:100000;font-family:Georgia,serif;box-sizing:border-box}
+  #bna-cal .ev-popup-close{position:absolute !important;top:0.625rem;right:0.875rem;background:none !important;border:none !important;border-radius:0 !important;font-size:1.5rem !important;cursor:pointer !important;color:#888 !important;line-height:1;padding:0 !important;width:auto !important;height:auto !important}
+  #bna-cal .ev-popup-close:hover{color:#333 !important}
+  #bna-cal .ev-popup-title{font-size:1.05rem;font-weight:700;color:#1a3a5c;margin:0 0 0.5rem;padding-right:1.5rem;line-height:1.35}
+  #bna-cal .ev-popup-meta{font-size:.8rem;color:#555;margin:0 0 0.25rem}
+  #bna-cal .ev-popup-desc{font-size:.82rem;color:#444;margin:0.5rem 0;line-height:1.55;max-height:10rem;overflow-y:auto}
+  #bna-cal .ev-popup-actions{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem}
+  #bna-cal .ev-popup-tag{display:inline-block;font-size:.65rem;padding:0.0625rem 0.4375rem;border-radius:0.625rem;font-weight:600;margin-bottom:0.375rem}
+
+  /* ── day popout ── */
+  #bna-cal .day-pop-list{margin-top:0.75rem;display:flex;flex-direction:column;gap:0.5rem}
+  #bna-cal .day-pop-row{display:block !important;width:100% !important;text-align:left !important;padding:0.625rem 0.75rem !important;border-radius:0.375rem !important;border:0.0625rem solid #e8e8e8 !important;background:transparent !important;cursor:pointer !important;transition:background .12s;font-family:Georgia,serif !important}
+  #bna-cal .day-pop-row:hover{background:#f0f6ff !important}
+  #bna-cal .day-pop-title{font-size:.88rem;font-weight:700;color:#1a3a5c;line-height:1.3}
+  #bna-cal .day-pop-time{font-size:.75rem;color:#666;margin-top:0.125rem}
+
+  /* ── misc ── */
+  #bna-cal .mobile-notice{font-size:.78rem;color:#888;font-style:italic;padding:0.375rem 0 0.75rem;border-bottom:0.0625rem solid #f0f0f0;margin-bottom:0.5rem}
+  #bna-cal button:focus-visible,#bna-cal a:focus-visible{outline:0.1875rem solid #93c5fd !important;outline-offset:0.125rem;border-radius:0.25rem}
+
+  /* ── mobile ── */
+  @media (max-width:31.25rem){
+    #bna-cal{padding:0.25rem 0}
+    #bna-cal .cal-toolbar{gap:0.5rem;margin-bottom:0.625rem}
+    #bna-cal .nav-label{font-size:.85rem}
+    #bna-cal .cal-nav-btn{width:2.5rem !important;height:2.5rem !important;font-size:1rem !important}
+    #bna-cal .view-dropdown-btn{font-size:.78rem !important;padding:0.5rem 1rem 0.5rem 1.125rem !important}
+    #bna-cal .view-dropdown-menu button{padding:0.75rem 1.125rem !important}
+    #bna-cal .cal-scroll{height:auto;max-height:75vh;border-radius:0.375rem;padding:0 0.625rem}
+    #bna-cal .filter-chip{font-size:.7rem !important;padding:0.25rem 0.5rem !important}
+    #bna-cal .filter-row{gap:0.25rem}
+    #bna-cal .event-row{gap:0.625rem;padding:0.625rem 0}
+    #bna-cal .event-date{flex:0 0 2.75rem}
+    #bna-cal .event-date .eday{font-size:1.2rem}
+    #bna-cal .event-title-btn{font-size:.92rem !important}
+    #bna-cal .event-time,#bna-cal .event-location,#bna-cal .event-desc{font-size:.78rem}
+    #bna-cal .btn-cal{font-size:.75rem !important;padding:0.4375rem 0.75rem !important}
+    #bna-cal .btn-more{padding:0.375rem 0 !important;font-size:.78rem !important}
+    #bna-cal .ev-popup{padding:1.25rem;max-width:none}
+    #bna-cal .ev-popup-title{font-size:1rem}
+    #bna-cal .ev-popup-close{font-size:1.75rem !important;top:0.5rem;right:0.75rem;padding:0.25rem !important}
+    #bna-cal .day-pop-row{padding:0.75rem}
+    #bna-cal .day-pop-title{font-size:.92rem}
+  }
+</style>
+
+<div id="bna-cal">
+  <div class="cal-loading">Loading community events&#8230;</div>
+</div>
+
+<script>
+(function(){
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwY31dCkR7B_CNObIlLyS97bIwYTUk3s26ionENU6Nla1nwjP7Qp2hA-TiInv9Z9tP3Jg/exec';
+  var PAGE_SIZE  = 5;
+  var HOUR_START = 7;
+  var HOUR_END   = 21;
+  var MOBILE_BP  = 500;
+
+  var container = document.getElementById('bna-cal');
+  if (!container) return;
+
+  var allEvents  = [];
+  var shownCount = 0;
+  var curView    = 'agenda';
+  var curDate    = new Date();
+
+  /* ── filter state (persists across view switches) ── */
+  var filterState = {
+    text:     '',
+    tags:     { main: true, second: true },
+    days:     [true,true,true,true,true,true,true],
+    location: ''
+  };
+
+  var DOW_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var DOW_ABBR  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var MON_FULL  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var MON_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function isMobile(){ return window.innerWidth < MOBILE_BP; }
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+  /* ── text helpers ── */
+  function stripHtml(html){
+    if (!html) return '';
+    var s = html.replace(/<br\s*\/?>/gi,' ').replace(/<\/?(p|div|li|span|tr)[^>]*>/gi,' ');
+    var tmp = document.createElement('div');
+    tmp.innerHTML = s;
+    return (tmp.textContent || tmp.innerText || '').replace(/\s+/g,' ').trim();
+  }
+  function truncate(str, max){
+    str = stripHtml(str);
+    if (!str) return {text:'', clipped:false};
+    if (str.length <= max) return {text:str, clipped:false};
+    var cut = str.lastIndexOf(' ', max);
+    if (cut < max * 0.6) cut = max;
+    return {text:str.slice(0,cut), clipped:true};
+  }
+  function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function linkify(str){
+    return str.replace(/(https?:\/\/[^\s<>"]+)/g,'<a href="$1" target="_blank" rel="noopener" class="bna-desc-link">$1</a>');
+  }
+
+  /* ── filter helpers ── */
+  function applyFilters(events){
+    return events.filter(function(ev){
+      if(filterState.text){
+        var q=filterState.text.toLowerCase();
+        var hay=(ev.title+' '+stripHtml(ev.desc)+' '+(ev.location||'')).toLowerCase();
+        if(hay.indexOf(q)<0) return false;
+      }
+      if(!filterState.tags[ev.color]) return false;
+      var dow=new Date(ev.start).getDay();
+      if(!filterState.days[dow]) return false;
+      if(filterState.location && (ev.location||'').trim()!==filterState.location) return false;
+      return true;
+    });
+  }
+  function filtersActive(){
+    if(filterState.text) return true;
+    if(!filterState.tags.main||!filterState.tags.second) return true;
+    for(var i=0;i<7;i++) if(!filterState.days[i]) return true;
+    if(filterState.location) return true;
+    return false;
+  }
+
+  /* ── date helpers ── */
+  function sameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+  function startOfWeek(d){ var s=new Date(d); s.setHours(0,0,0,0); s.setDate(s.getDate()-s.getDay()); return s; }
+  function addDays(d,n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+  function eventsForDay(day){
+    return allEvents.filter(function(ev){
+      var s=new Date(ev.start), e=new Date(ev.end);
+      if(ev.allDay){
+        var ds=new Date(s.getFullYear(),s.getMonth(),s.getDate());
+        var de=new Date(e.getFullYear(),e.getMonth(),e.getDate());
+        var dd=new Date(day.getFullYear(),day.getMonth(),day.getDate());
+        return dd>=ds&&dd<de;
+      }
+      return sameDay(s,day);
+    });
+  }
+
+  /* ── time formatting ── */
+  function formatTime(iso){
+    var d=new Date(iso), h=d.getHours(), m=d.getMinutes(), ampm=h>=12?'pm':'am';
+    h=h%12||12;
+    return h+(m?':'+pad(m):'')+'\u202f'+ampm;
+  }
+  function formatRange(ev){
+    if(ev.allDay) return 'All day';
+    var s=formatTime(ev.start), e=formatTime(ev.end);
+    return (e&&e!==s)?s+' \u2013 '+e:s;
+  }
+
+  /* ── add-to-cal ── */
+  function toGCalUrl(ev){
+    var fmt=function(iso){return iso.replace(/[-:]/g,'').replace(/\.\d+/,'');};
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      +'&text='+encodeURIComponent(ev.title)
+      +'&dates='+fmt(ev.start)+'/'+fmt(ev.end)
+      +'&details='+encodeURIComponent(stripHtml(ev.desc))
+      +'&location='+encodeURIComponent(ev.location||'');
+  }
+  function makeICS(ev){
+    var now=new Date();
+    var stamp=now.getUTCFullYear()+pad(now.getUTCMonth()+1)+pad(now.getUTCDate())+'T'+pad(now.getUTCHours())+pad(now.getUTCMinutes())+pad(now.getUTCSeconds())+'Z';
+    var fmt=function(iso){return iso.replace(/[-:]/g,'').replace(/\.\d+/,'');};
+    return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//BNA//EN',
+      'BEGIN:VEVENT','UID:'+stamp+'@bna','DTSTAMP:'+stamp,
+      'DTSTART:'+(ev.allDay?fmt(ev.start).slice(0,8):fmt(ev.start)),
+      'DTEND:'+(ev.allDay?fmt(ev.end).slice(0,8):fmt(ev.end)),
+      'SUMMARY:'+(ev.title||''),
+      'DESCRIPTION:'+stripHtml(ev.desc||'').replace(/\n/g,'\\n'),
+      'LOCATION:'+(ev.location||''),
+      'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  }
+  function downloadICS(ev){
+    var blob=new Blob([makeICS(ev)],{type:'text/calendar'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=(ev.title||'event').replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.ics';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  }
+
+  /* ── popup ── */
+  function showPopup(ev){
+    var old=document.getElementById('bna-popup-overlay'); if(old) old.parentNode.removeChild(old);
+    var t=truncate(ev.desc,600);
+    var tagBg=ev.color==='main'?'#fce8ee':'#e8eaf6', tagCl=ev.color==='main'?'#ad1457':'#3f51b5';
+    var overlay=document.createElement('div');
+    overlay.className='ev-popup-overlay'; overlay.id='bna-popup-overlay';
+    overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label',ev.title||'Event details');
+    overlay.innerHTML='<div class="ev-popup">'
+      +'<button class="ev-popup-close" id="bna-popup-close" aria-label="Close">&times;</button>'
+      +'<span class="ev-popup-tag" style="background:'+tagBg+';color:'+tagCl+'">'+ev.label+'</span>'
+      +'<div class="ev-popup-title">'+esc(ev.title)+'</div>'
+      +'<div class="ev-popup-meta">&#128336; '+formatRange(ev)+'</div>'
+      +(ev.location?'<div class="ev-popup-meta">&#128205; '+esc(ev.location)+'</div>':'')
+      +(t.text?'<div class="ev-popup-desc">'+linkify(esc(t.text))+(t.clipped?'&hellip;':'')+'</div>':'')
+      +'<div class="ev-popup-actions">'
+      +'<a class="btn-cal btn-gcal" href="'+toGCalUrl(ev)+'" target="_blank" rel="noopener">+ Google Calendar</a>'
+      +'<button class="btn-cal btn-ical" id="bna-popup-ical">&#8615; iCal</button>'
+      +'</div></div>';
+    container.appendChild(overlay);
+    var closeBtn=document.getElementById('bna-popup-close');
+    closeBtn.onclick=closePopup;
+    document.getElementById('bna-popup-ical').onclick=function(){downloadICS(ev);};
+    overlay.addEventListener('click',function(e){if(e.target===overlay)closePopup();});
+    closeBtn.focus();
+    document.addEventListener('keydown',onPopupKey);
+  }
+  function closePopup(){
+    var o=document.getElementById('bna-popup-overlay');
+    if(o) o.parentNode.removeChild(o);
+    document.removeEventListener('keydown',onPopupKey);
+  }
+  function onPopupKey(e){ if(e.key==='Escape'||e.keyCode===27) closePopup(); }
+
+  /* ── day popout ── */
+  function showDayPopout(day){
+    var old=document.getElementById('bna-popup-overlay'); if(old) old.parentNode.removeChild(old);
+    var evs=eventsForDay(day);
+    var label=DOW_SHORT[day.getDay()]+', '+MON_FULL[day.getMonth()]+' '+day.getDate();
+    var rows=evs.map(function(ev){
+      var tagBg=ev.color==='main'?'#fce8ee':'#e8eaf6', tagCl=ev.color==='main'?'#ad1457':'#3f51b5';
+      return '<button class="day-pop-row" data-evidx="'+allEvents.indexOf(ev)+'">'
+        +'<div class="day-pop-title">'+esc(ev.title)
+        +'<span class="cal-source-tag" style="background:'+tagBg+';color:'+tagCl+'">'+ev.label+'</span></div>'
+        +'<div class="day-pop-time">'+formatRange(ev)+'</div>'
+        +'</button>';
+    }).join('');
+    var overlay=document.createElement('div');
+    overlay.className='ev-popup-overlay'; overlay.id='bna-popup-overlay';
+    overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Events on '+label);
+    overlay.innerHTML='<div class="ev-popup">'
+      +'<button class="ev-popup-close" id="bna-popup-close" aria-label="Close">&times;</button>'
+      +'<div class="ev-popup-title">'+label+'</div>'
+      +'<div class="day-pop-list">'+rows+'</div>'
+      +'</div>';
+    container.appendChild(overlay);
+    var closeBtn=document.getElementById('bna-popup-close');
+    closeBtn.onclick=closePopup;
+    overlay.addEventListener('click',function(e){
+      if(e.target===overlay){closePopup();return;}
+      var row=e.target.closest('[data-evidx]');
+      if(row){closePopup();showPopup(allEvents[+row.getAttribute('data-evidx')]);}
+    });
+    closeBtn.focus();
+    document.addEventListener('keydown',onPopupKey);
+  }
+
+  /* ══════════════════════════════════════════
+     FILTER UI (agenda view only)
+  ══════════════════════════════════════════ */
+  function buildFilterUI(content, onchange){
+    var now=new Date(); now.setHours(0,0,0,0);
+    var locs=[];
+    allEvents.filter(function(ev){ return new Date(ev.start)>=now && ev.location; })
+      .forEach(function(ev){
+        var l=(ev.location||'').trim();
+        if(l && locs.indexOf(l)<0) locs.push(l);
+      });
+    locs.sort();
+
+    var locOpts='<option value="">All locations</option>'
+      +locs.map(function(l){
+        return '<option value="'+esc(l)+'"'+(filterState.location===l?' selected':'')+'>'+esc(l)+'</option>';
+      }).join('');
+
+    var dayChips=DOW_ABBR.map(function(d,i){
+      return '<button class="filter-chip'+(filterState.days[i]?' on':'')+'" data-fday="'+i+'">'+d+'</button>';
+    }).join('');
+
+    var bar=document.createElement('div');
+    bar.className='filter-bar'; bar.id='bna-filter-bar';
+    bar.innerHTML=
+      '<input class="filter-search" type="search" placeholder="Search events&#8230;" value="'+esc(filterState.text)+'" id="bna-fsearch" aria-label="Search events">'
+      +'<div class="filter-row">'
+      +'<span class="filter-label">Source</span>'
+      +'<button class="filter-chip src-main'+(filterState.tags.main?' on':'')+'" data-ftag="main">BNA</button>'
+      +'<button class="filter-chip src-second'+(filterState.tags.second?' on':'')+'" data-ftag="second">Community</button>'
+      +(locs.length?'<select class="filter-select" id="bna-floc" aria-label="Filter by location">'+locOpts+'</select>':'')
+      +'</div>'
+      +'<div class="filter-row"><span class="filter-label">Day</span>'+dayChips+'</div>'
+      +'<button class="filter-clear'+(filtersActive()?' visible':'')+'" id="bna-fclear">Clear filters</button>';
+    content.appendChild(bar);
+
+    function syncClearBtn(){
+      var cb=bar.querySelector('#bna-fclear');
+      if(cb) cb.className='filter-clear'+(filtersActive()?' visible':'');
+    }
+
+    bar.querySelector('#bna-fsearch').addEventListener('input',function(e){
+      filterState.text=e.target.value; syncClearBtn(); onchange();
+    });
+
+    var locSel=bar.querySelector('#bna-floc');
+    if(locSel) locSel.addEventListener('change',function(e){
+      filterState.location=e.target.value; syncClearBtn(); onchange();
+    });
+
+    bar.addEventListener('click',function(e){
+      var tagBtn=e.target.closest('[data-ftag]');
+      if(tagBtn){
+        var tag=tagBtn.getAttribute('data-ftag');
+        filterState.tags[tag]=!filterState.tags[tag];
+        tagBtn.classList.toggle('on',filterState.tags[tag]);
+        syncClearBtn(); onchange(); return;
+      }
+      var dayBtn=e.target.closest('[data-fday]');
+      if(dayBtn){
+        var di=+dayBtn.getAttribute('data-fday');
+        filterState.days[di]=!filterState.days[di];
+        dayBtn.classList.toggle('on',filterState.days[di]);
+        syncClearBtn(); onchange(); return;
+      }
+      if(e.target.id==='bna-fclear'){
+        filterState.text=''; filterState.tags.main=true; filterState.tags.second=true;
+        filterState.days=[true,true,true,true,true,true,true]; filterState.location='';
+        bar.querySelector('#bna-fsearch').value='';
+        var chips=bar.querySelectorAll('[data-ftag],[data-fday]');
+        for(var i=0;i<chips.length;i++) chips[i].classList.add('on');
+        if(locSel) locSel.value='';
+        syncClearBtn(); onchange();
+      }
+    });
+  }
+
+  /* ══════════════════════════════════════════
+     AGENDA VIEW
+  ══════════════════════════════════════════ */
+  function renderAgenda(mobileNotice){
+    var content=document.getElementById('bna-content');
+    content.innerHTML='';
+
+    if(mobileNotice){
+      var notice=document.createElement('div');
+      notice.className='mobile-notice';
+      notice.textContent='Month and week views are only available on larger screens.';
+      content.appendChild(notice);
+    }
+
+    var now=new Date(); now.setHours(0,0,0,0);
+    var baseUpcoming=allEvents.filter(function(ev){ return new Date(ev.start)>=now; });
+
+    /* build filter UI — only in schedule view */
+    buildFilterUI(content, refreshScroll);
+
+    /* scroll container */
+    var wrap=document.createElement('div'); wrap.className='cal-scroll'; wrap.id='bna-scroll';
+    content.appendChild(wrap);
+
+    function refreshScroll(){
+      wrap.innerHTML='';
+      shownCount=0;
+      var lw=content.querySelector('.load-more-wrap');
+      if(lw) lw.parentNode.removeChild(lw);
+
+      var filtered=applyFilters(baseUpcoming);
+      if(!filtered.length){
+        var msg=filtersActive()?'No events match your filters.':'No upcoming events. Check back soon!';
+        wrap.innerHTML='<div class="no-events">'+msg+'</div>';
+        return;
+      }
+      showBatch(filtered);
+    }
+
+    function showBatch(filtered){
+      var batch=filtered.slice(shownCount,shownCount+PAGE_SIZE);
+      batch.forEach(function(ev){
+        var globalIdx=allEvents.indexOf(ev);
+        var d=new Date(ev.start);
+        var mk=d.getFullYear()+'-'+pad(d.getMonth());
+        var group=wrap.querySelector('[data-month="'+mk+'"]');
+        if(!group){
+          group=document.createElement('div');
+          group.className='month-group'; group.setAttribute('data-month',mk);
+          group.innerHTML='<div class="month-label">'+MON_FULL[d.getMonth()]+' '+d.getFullYear()+'</div>';
+          wrap.appendChild(group);
+        }
+        var t=truncate(ev.desc,120);
+        var uid='bna-ev-'+globalIdx;
+        var html='<div class="event-row">'
+          +'<div class="event-date"><div class="eday">'+d.getDate()+'</div><div class="edow">'+DOW_SHORT[d.getDay()]+'</div></div>'
+          +'<div class="event-body">'
+          +'<button class="event-title-btn" data-gidx="'+globalIdx+'">'+esc(ev.title)+'<span class="cal-source-tag src-'+ev.color+'">'+ev.label+'</span></button>';
+        var tr=formatRange(ev);
+        if(tr) html+='<div class="event-time">&#128336; '+tr+'</div>';
+        if(ev.location) html+='<div class="event-location">&#128205; '+esc(ev.location)+'</div>';
+        if(t.text){
+          /* FIX: linkify inline description so URLs render as links */
+          html+='<div class="event-desc" id="'+uid+'-desc">'+linkify(esc(t.text));
+          if(t.clipped) html+='&hellip; <button class="btn-more" data-uid="'+uid+'" data-full="'+esc(stripHtml(ev.desc))+'">more</button>';
+          html+='</div>';
+        }
+        html+='<div class="event-actions">'
+          +'<a class="btn-cal btn-gcal" href="'+toGCalUrl(ev)+'" target="_blank" rel="noopener">+ Google Calendar</a>'
+          +'<button class="btn-cal btn-ical" data-gidx="'+globalIdx+'">&#8615; iCal</button>'
+          +'</div></div></div>';
+        var tmp=document.createElement('div'); tmp.innerHTML=html;
+        group.appendChild(tmp.firstChild);
+      });
+      shownCount+=batch.length;
+
+      var lw=content.querySelector('.load-more-wrap');
+      if(shownCount>=filtered.length){ if(lw) lw.parentNode.removeChild(lw); }
+      else if(!lw){
+        var w=document.createElement('div'); w.className='load-more-wrap';
+        w.innerHTML='<button class="btn-load-more">Show more events</button>';
+        content.appendChild(w);
+      }
+    }
+
+    refreshScroll();
+
+    container.addEventListener('click',function agClick(e){
+      if(curView!=='agenda') return;
+      var titleBtn=e.target.closest('.event-title-btn');
+      if(titleBtn){ showPopup(allEvents[+titleBtn.getAttribute('data-gidx')]); return; }
+      var ical=e.target.closest('.btn-ical[data-gidx]');
+      if(ical){ downloadICS(allEvents[+ical.getAttribute('data-gidx')]); return; }
+      var more=e.target.closest('.btn-more');
+      if(more){
+        var desc=document.getElementById(more.getAttribute('data-uid')+'-desc');
+        /* FIX: use innerHTML + linkify so expanded text renders links */
+        if(desc) desc.innerHTML=linkify(esc(more.getAttribute('data-full')));
+        return;
+      }
+      var load=e.target.closest('.btn-load-more');
+      if(load) showBatch(applyFilters(baseUpcoming));
+    });
+  }
+
+  /* ══════════════════════════════════════════
+     MONTH VIEW
+  ══════════════════════════════════════════ */
+  function renderMonth(){
+    if(isMobile()){ renderAgenda(true); return; }
+    var content=document.getElementById('bna-content');
+    var year=curDate.getFullYear(), month=curDate.getMonth();
+    var first=new Date(year,month,1);
+    var startCell=new Date(first); startCell.setDate(1-first.getDay());
+    var today=new Date(); today.setHours(0,0,0,0);
+    var headHTML='<div class="grid-head">';
+    DOW_SHORT.forEach(function(d){ headHTML+='<div class="grid-head-cell">'+d+'</div>'; });
+    headHTML+='</div>';
+    var bodyHTML='<div class="grid-body">';
+    var cur=new Date(startCell);
+    for(var r=0;r<6;r++){
+      for(var c=0;c<7;c++){
+        var isOther=cur.getMonth()!==month, isToday=sameDay(cur,today);
+        bodyHTML+='<div class="grid-cell'+(isOther?' other-month':'')+(isToday?' today':'')+'" data-date="'+cur.toISOString()+'">';
+        bodyHTML+='<div class="cell-day">'+cur.getDate()+'</div>';
+        var dayEvs=eventsForDay(cur);
+        dayEvs.slice(0,2).forEach(function(ev){
+          bodyHTML+='<div class="cell-event src-'+ev.color+'" data-evidx="'+allEvents.indexOf(ev)+'">'+esc(ev.title)+'</div>';
+        });
+        if(dayEvs.length>2) bodyHTML+='<div class="cell-more" data-date="'+cur.toISOString()+'">+'+(dayEvs.length-2)+' more</div>';
+        bodyHTML+='</div>';
+        cur=addDays(cur,1);
+      }
+    }
+    bodyHTML+='</div>';
+    var grid=document.createElement('div'); grid.className='cal-grid';
+    grid.innerHTML=headHTML+bodyHTML;
+    content.innerHTML=''; content.appendChild(grid);
+    grid.addEventListener('click',function(e){
+      var ev=e.target.closest('[data-evidx]');
+      if(ev){ showPopup(allEvents[+ev.getAttribute('data-evidx')]); return; }
+      var more=e.target.closest('.cell-more');
+      if(more) showDayPopout(new Date(more.getAttribute('data-date')));
+    });
+  }
+
+  /* ══════════════════════════════════════════
+     WEEK VIEW
+  ══════════════════════════════════════════ */
+  function renderWeek(){
+    if(isMobile()){ renderAgenda(true); return; }
+    var content=document.getElementById('bna-content');
+    var wStart=startOfWeek(curDate);
+    var today=new Date(); today.setHours(0,0,0,0);
+    var SLOT_H=36, TOTAL_SLOTS=(HOUR_END-HOUR_START)*2;
+
+    var headHTML='<div class="wk-corner"></div>';
+    for(var d=0;d<7;d++){
+      var day=addDays(wStart,d), isToday=sameDay(day,today);
+      headHTML+='<div class="wk-head'+(isToday?' today':'')+'">'
+        +'<div class="wk-dow">'+DOW_SHORT[day.getDay()]+'</div>'
+        +'<div class="wk-date">'+day.getDate()+'</div></div>';
+    }
+    var allDayHTML='<div class="wk-allday-label">all day</div>';
+    for(var d=0;d<7;d++){
+      var day=addDays(wStart,d);
+      allDayHTML+='<div class="wk-allday-cell">';
+      eventsForDay(day).filter(function(ev){ return ev.allDay; }).forEach(function(ev){
+        allDayHTML+='<div class="cell-event src-'+ev.color+'" data-evidx="'+allEvents.indexOf(ev)+'" style="position:relative;margin-bottom:0.125rem">'+esc(ev.title)+'</div>';
+      });
+      allDayHTML+='</div>';
+    }
+    var slotsHTML='';
+    for(var slot=0;slot<TOTAL_SLOTS;slot++){
+      var totalMins=(HOUR_START*60)+(slot*30), hh=Math.floor(totalMins/60), mm=totalMins%60;
+      var label=mm===0?(hh>12?hh-12:hh)+(hh>=12?'pm':'am'):'';
+      slotsHTML+='<div class="wk-time-label">'+label+'</div>';
+      for(var d=0;d<7;d++) slotsHTML+='<div class="wk-cell'+(mm===0?' hour-start':'')+'" data-slot="'+slot+'" data-col="'+d+'"></div>';
+    }
+
+    var wkWrap=document.createElement('div');
+    wkWrap.innerHTML='<div style="border:0.0625rem solid #e8e8e8;border-radius:0.5rem;overflow:hidden">'
+      +'<div style="display:grid;grid-template-columns:2.75rem repeat(7,1fr);background:#f5f5f5;border-bottom:0.125rem solid #e0e0e0" id="bna-wk-head-row"></div>'
+      +'<div class="wk-allday-row" id="bna-wk-allday"></div>'
+      +'<div class="week-grid" id="bna-wk-body" style="border:none;border-radius:0"></div>'
+      +'</div>';
+    wkWrap.querySelector('#bna-wk-head-row').innerHTML=headHTML;
+    wkWrap.querySelector('#bna-wk-allday').innerHTML=allDayHTML;
+    var bodyGrid=wkWrap.querySelector('#bna-wk-body');
+    bodyGrid.innerHTML=slotsHTML;
+    content.innerHTML=''; content.appendChild(wkWrap);
+
+    for(var d=0;d<7;d++){
+      var day=addDays(wStart,d);
+      eventsForDay(day).filter(function(ev){ return !ev.allDay; }).forEach(function(ev){
+        var s=new Date(ev.start), e=new Date(ev.end);
+        var startMins=s.getHours()*60+s.getMinutes();
+        var slotStart=Math.max(0,(startMins-HOUR_START*60)/30);
+        var slotSpan=Math.max(1,(e-s)/1800000);
+        var cells=bodyGrid.querySelectorAll('[data-slot="'+Math.floor(slotStart)+'"][data-col="'+d+'"]');
+        if(!cells.length) return;
+        var pill=document.createElement('div');
+        pill.className='wk-event src-'+ev.color;
+        pill.style.top='0'; pill.style.height=(slotSpan*SLOT_H-2)+'px';
+        pill.textContent=ev.title;
+        pill.setAttribute('data-evidx',allEvents.indexOf(ev));
+        cells[0].style.position='relative'; cells[0].appendChild(pill);
+      });
+    }
+
+    wkWrap.addEventListener('click',function(e){
+      var pill=e.target.closest('[data-evidx]');
+      if(pill) showPopup(allEvents[+pill.getAttribute('data-evidx')]);
+    });
+
+    /* ── FIX: scroll to center on first event; fallbacks for empty weeks ── */
+    var weekTimedEvs=[];
+    for(var d=0;d<7;d++){
+      var day=addDays(wStart,d);
+      eventsForDay(day).filter(function(ev){ return !ev.allDay; }).forEach(function(ev){ weekTimedEvs.push(ev); });
+    }
+    weekTimedEvs.sort(function(a,b){ return new Date(a.start)-new Date(b.start); });
+
+    var scrollTarget;
+    if(weekTimedEvs.length){
+      var firstS=new Date(weekTimedEvs[0].start);
+      var sMins=firstS.getHours()*60+firstS.getMinutes();
+      var slotOff=Math.max(0,(sMins-HOUR_START*60)/30)*SLOT_H;
+      scrollTarget=Math.max(0, slotOff - bodyGrid.clientHeight/2);
+    } else {
+      var todayInWeek=false;
+      for(var d=0;d<7;d++){ if(sameDay(addDays(wStart,d),today)){ todayInWeek=true; break; } }
+      if(todayInWeek){
+        var nowMins=today.getHours()*60+today.getMinutes();
+        scrollTarget=Math.max(0,((nowMins-HOUR_START*60)/30)*SLOT_H - bodyGrid.clientHeight/2);
+      } else {
+        scrollTarget=((9-HOUR_START)*2)*SLOT_H;
+      }
+    }
+    bodyGrid.scrollTop=scrollTarget;
+  }
+
+  /* ══════════════════════════════════════════
+     TOOLBAR
+  ══════════════════════════════════════════ */
+  function navLabel(){
+    if(curView==='agenda') return 'Upcoming Events';
+    if(curView==='month')  return MON_FULL[curDate.getMonth()]+' '+curDate.getFullYear();
+    if(curView==='week'){
+      var s=startOfWeek(curDate), e=addDays(s,6);
+      if(s.getMonth()===e.getMonth()) return MON_SHORT[s.getMonth()]+' '+s.getDate()+' \u2013 '+e.getDate()+', '+s.getFullYear();
+      return MON_SHORT[s.getMonth()]+' '+s.getDate()+' \u2013 '+MON_SHORT[e.getMonth()]+' '+e.getDate()+', '+s.getFullYear();
+    }
+  }
+  var VIEW_LABELS={agenda:'Schedule',month:'Month',week:'Week'};
+
+  function buildToolbar(){
+    var tb=document.createElement('div'); tb.className='cal-toolbar'; tb.id='bna-toolbar';
+    var isNav=(curView!=='agenda');
+    var hideCls=isNav?'':' nav-hidden';
+    var leftHTML='<div class="toolbar-left">'
+      +'<button class="cal-nav-btn'+hideCls+'" id="bna-prev">&#8249;</button>'
+      +'<span class="nav-label">'+navLabel()+'</span>'
+      +'<button class="cal-nav-btn'+hideCls+'" id="bna-next">&#8250;</button>'
+      +(isNav?'<button class="cal-nav-today" id="bna-today">Today</button>':'')
+      +'</div>';
+    var dropHTML='<div class="view-dropdown" id="bna-view-dropdown">'
+      +'<button class="view-dropdown-btn" id="bna-view-btn">'+VIEW_LABELS[curView]+'</button>'
+      +'<div class="view-dropdown-menu" id="bna-view-menu">'
+      +'<button data-view="agenda" class="'+(curView==='agenda'?'active':'')+'">Schedule</button>'
+      +'<button data-view="month"  class="'+(curView==='month' ?'active':'')+'">Month</button>'
+      +'<button data-view="week"   class="'+(curView==='week'  ?'active':'')+'">Week</button>'
+      +'</div></div>';
+    tb.innerHTML=leftHTML+dropHTML;
+    return tb;
+  }
+
+  function navigate(dir){
+    if(curView==='month') curDate=new Date(curDate.getFullYear(),curDate.getMonth()+dir,1);
+    if(curView==='week')  curDate=addDays(curDate,dir*7);
+    drawView();
+  }
+  function setView(v){ curView=v; drawView(); }
+
+  function drawView(){
+    var old=document.getElementById('bna-toolbar'); if(old) old.parentNode.removeChild(old);
+    var oldC=document.getElementById('bna-content'); if(oldC) oldC.parentNode.removeChild(oldC);
+    container.innerHTML='';
+    var tb=buildToolbar();
+    container.appendChild(tb);
+    var content=document.createElement('div'); content.id='bna-content';
+    container.appendChild(content);
+    var dropBtn=tb.querySelector('#bna-view-btn');
+    var dropMenu=tb.querySelector('#bna-view-menu');
+    dropBtn.addEventListener('click',function(e){ e.stopPropagation(); dropMenu.classList.toggle('open'); });
+    document.addEventListener('click',function closeDD(e){
+      if(!tb.contains(e.target)){ dropMenu.classList.remove('open'); document.removeEventListener('click',closeDD); }
+    });
+    tb.addEventListener('click',function(e){
+      var tab=e.target.closest('[data-view]');
+      if(tab){ dropMenu.classList.remove('open'); setView(tab.getAttribute('data-view')); return; }
+      if(e.target.id==='bna-prev'){ navigate(-1); return; }
+      if(e.target.id==='bna-next'){ navigate(1); return; }
+      if(e.target.id==='bna-today'){ curDate=new Date(); drawView(); return; }
+    });
+    if(curView==='agenda') renderAgenda(false);
+    if(curView==='month')  renderMonth();
+    if(curView==='week')   renderWeek();
+  }
+
+  /* ── fetch & init ── */
+  fetch(SCRIPT_URL)
+    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data){ allEvents=data.events||[]; drawView(); })
+    .catch(function(err){
+      container.innerHTML='<div class="cal-error">'
+        +'<strong>Could not load events.</strong> Please try refreshing, or '
+        +'<a href="https://calendar.google.com/calendar/embed?src=c_e0f11e4cdaf686bb79f2f2a4d0ded1bb97a2f3b124f5c28d0e7c54f503b68445%40group.calendar.google.com" target="_blank">view the Google Calendar directly</a>.'
+        +'</div>';
+      console.error('BNA cal:',err);
+    });
+})();
+</script>
