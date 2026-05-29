@@ -7,7 +7,7 @@
   var B = window._BNA = {
 
     /* ── Apps Script endpoint ── */
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzEgHIhPfCj4afp83Awaq4oj-oZ7pzkv0Hsath8ZwOIQCNR9-B31uR-WYfyme9xel0leA/exec',
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwY31dCkR7B_CNObIlLyS97bIwYTUk3s26ionENU6Nla1nwjP7Qp2hA-TiInv9Z9tP3Jg/exec',
 
     /* ── CDN URLs for view modules
           Update the version tag here AND in bna-calendar-block-slim.html
